@@ -70,10 +70,11 @@ public class TenFoldCVTreeSmoothing {
 			EvaluationC45 eva = new EvaluationC45(data);
 			eva.crossValidateModel(tree, data, 10, random);
 			
-			System.out.print("\t"+nD+"\t"+nA+"\t"+nC);
+//			System.out.print("\t"+nD+"\t"+(nA-1)+"\t"+nC);
 			System.out.print("\t"+Utils.doubleToString(eva.rootMeanSquaredError(), 6, 4));
 			System.out.print("\t"+Utils.doubleToString(eva.errorRate(), 6,4));	
 			System.out.print("\t"+eva.getTrainTime()+"\n");
+//			System.out.println();
 		}
 	}
 

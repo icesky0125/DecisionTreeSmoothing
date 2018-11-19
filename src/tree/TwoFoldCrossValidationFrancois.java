@@ -24,7 +24,7 @@ public class TwoFoldCrossValidationFrancois {
 	private static String data;
 	private static boolean m_unPruning = false;
 	private static Integer m_nExp = 5;
-	protected static SmoothingMethod method = SmoothingMethod.LOOCV;
+	protected static SmoothingMethod method = SmoothingMethod.HGS;
 
 	public static void main(String[] args) throws Exception {
 
@@ -301,8 +301,8 @@ public class TwoFoldCrossValidationFrancois {
 				method = SmoothingMethod.M_estimation;
 			} else if (string.equalsIgnoreCase("hdp")) {
 				method = SmoothingMethod.HDP;
-			} else if (string.equalsIgnoreCase("loocv")) {
-				method = SmoothingMethod.LOOCV;
+			} else if (string.equalsIgnoreCase("hgs")) {
+				method = SmoothingMethod.HGS;
 			} else if (string.equalsIgnoreCase("recursive")) {
 				method = SmoothingMethod.RECURSIVE;
 			} else if (string.equalsIgnoreCase("optiMes")) {
