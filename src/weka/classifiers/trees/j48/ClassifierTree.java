@@ -165,8 +165,10 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 	protected RandomGenerator rng = new MersenneTwister(3071980);
 
 	private int nDatapoints;
-	LogStirlingGenerator lgCache;
+	
 	double d = 0.0;
+	LogStirlingGenerator lgCache;
+//	LogStirlingCache lgCache;
 
 	/**
 	 * Method for building a classifier tree.
@@ -789,33 +791,6 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 			for (int c = 0; c < m_sons.length; c++) {
 				if (m_sons[c] != null) {
 					res += m_sons[c].printPksRecursively(prefix + " -> " + c);
-				}
-			}
-		}
-		return res;
-	}
-
-	public String printNksRecursively(String prefix) {
-		String res = "";
-		if (m_isLeaf) {
-			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
-					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) + " c="
-					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
-			// res += prefix + ":nk=" + Arrays.toString(this.nk) + "\n";
-
-		} else {
-			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
-					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) + " c="
-					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
-
-			// res += prefix + ":nk=" + Arrays.toString(this.nk) + " alpha="
-			// + Utils.doubleToString(alpha, 4) + "\n";
-		}
-
-		if (m_sons != null) {
-			for (int c = 0; c < m_sons.length; c++) {
-				if (m_sons[c] != null) {
-					res += m_sons[c].printNksRecursively(prefix + " -> " + c);
 				}
 			}
 		}
@@ -1722,6 +1697,77 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 	@Override
 	public String getRevision() {
 		return RevisionUtils.extract("$Revision: 11269 $");
+	}
+	
+	public String printNksRecursively(String prefix) {
+		String res = "";
+		if (m_isLeaf) {
+			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
+					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) + " c="
+					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
+			// res += prefix + ":nk=" + Arrays.toString(this.nk) + "\n";
+
+		} else {
+			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
+					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) + " c="
+					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
+
+			// res += prefix + ":nk=" + Arrays.toString(this.nk) + " alpha="
+			// + Utils.doubleToString(alpha, 4) + "\n";
+		}
+
+		if (m_sons != null) {
+			for (int c = 0; c < m_sons.length; c++) {
+				if (m_sons[c] != null) {
+					res += m_sons[c].printNksRecursively(prefix + " -> " + c);
+				}
+			}
+		}
+		return res;
+	}
+
+	public String printNksRecursivelyHGS(String prefix) {
+		String res = "";
+		if (m_isLeaf) {
+			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
+					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) +"\n";
+
+		} else {
+			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
+					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) + "\n";
+		}
+
+		if (m_sons != null) {
+			for (int c = 0; c < m_sons.length; c++) {
+				if (m_sons[c] != null) {
+					res += m_sons[c].printNksRecursivelyHGS(prefix + " -> " + c);
+				}
+			}
+		}
+		return res;
+	}
+
+	public String printNksRecursivelyHDP(String prefix) {
+		String res = "";
+		if (m_isLeaf) {
+			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
+					+ Arrays.toString(this.pk) + " c="
+					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
+
+		} else {
+			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
+					+ Arrays.toString(this.pk)  + " c="
+					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
+		}
+
+		if (m_sons != null) {
+			for (int c = 0; c < m_sons.length; c++) {
+				if (m_sons[c] != null) {
+					res += m_sons[c].printNksRecursivelyHDP(prefix + " -> " + c);
+				}
+			}
+		}
+		return res;
 	}
 	
 	

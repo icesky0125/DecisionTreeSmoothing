@@ -7,10 +7,8 @@ import java.util.Random;
 import java.util.Vector;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
-
 import method.HDPMethod;
 import method.SmoothingMethod;
-import hdp.Concentration;
 import hdp.TyingStrategy;
 import hdp.logStirling.LogStirlingFactory;
 import hdp.logStirling.LogStirlingGenerator;
@@ -208,13 +206,14 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	protected SmoothingMethod method = SmoothingMethod.HGS;
 	private HDPMethod methodHDP;
 	private int nC;
-	
+
 	/** loocv parameters. */
 	protected boolean LOOCV = false;
 	ArrayList<ClassifierTree> leaves = new ArrayList<ClassifierTree>();
 	ArrayList<ClassifierTree> alphaList = new ArrayList<ClassifierTree>();
 	double precision = 0.00001;
 	double step = 0.01;
+	double lambda = 100000;
 
 	/** recursive LOOCV estimate **/
 	protected boolean recursiveLOOCV = false;
@@ -258,7 +257,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		ModelSelection modSelection;
 
 		this.nC = instances.numClasses();
-	
+
 		if (m_binarySplits) {
 			modSelection = new BinC45ModelSelection(m_minNumObj, instances, m_useMDLcorrection,
 					m_doNotMakeSplitPointActualValue);
@@ -273,10 +272,11 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		} else {
 			m_root = new PruneableClassifierTree(modSelection, !m_unpruned, m_numFolds, !m_noCleanup, m_Seed);
 		}
-		
+
 		if (method == SmoothingMethod.VALIDATE) {
-			// use half of the data to learn the structure, use the remaining to learn the parameter
-			
+			// use half of the data to learn the structure, use the remaining to learn the
+			// parameter
+
 			Random rand = new Random(25011990); // create seeded number generator
 			Instances randData = new Instances(instances); // create copy of original data
 			randData.randomize(rand);
@@ -311,9 +311,9 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			this.convertCountToProbs(method.toString());
 			break;
 		case HDP:
-			
+
 			if (methodHDP.equals(HDPMethod.Alpha)) {
-				// initialize HDP using recursive LOOCV. 
+				// initialize HDP using recursive LOOCV.
 				this.recursiveLOOCV = true;
 				treeTraversal(m_root);
 //				 this.recursiveLOOCVCost();
@@ -323,6 +323,8 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			}
 
 			LogStirlingGenerator lgcache = LogStirlingFactory.newLogStirlingGenerator(instances.numInstances(), 0.0);
+			
+//			LogStirlingCache lgcache = new LogStirlingCache(0.0,instances.numInstances());
 			m_root.setLogStirlingCache(lgcache);
 			smooth();
 //			this.printTree();
@@ -331,7 +333,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			treeTraversal(m_root);
 			stepGradient();
 			double[] sumalpha = new double[this.nC];
-			this.calculatePkForLeaves(m_root, 0, sumalpha, false);
+			calculatePkForLeaves(m_root, 0, sumalpha, false);
 //			this.printTree();
 			break;
 		case RECURSIVE:
@@ -362,7 +364,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			((C45ModelSelection) modSelection).cleanup();
 		}
 	}
-	
+
 	/**
 	 * Returns class probabilities for an instance.
 	 * 
@@ -374,17 +376,16 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	public final double[] distributionForInstance(Instance instance) throws Exception {
 		return m_root.distributionForInstance(instance);
 	}
-	
 
 	private double optimizedMestimation(Instances data) {
-		
+
 		Random rand = new Random(25011990); // create seeded number generator
 		C45 classifier = new C45();
 //		classifier.setReducedErrorPruning(true);
-			// tree.setComplexityPruning(true);
+		// tree.setComplexityPruning(true);
 		classifier.setUnpruned(m_unpruned);
 		classifier.setMethod(SmoothingMethod.M_estimation);
-		
+
 		double bestM = 1.0;
 		double bestRMSE = Double.MAX_VALUE;
 
@@ -396,9 +397,9 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			try {
 				evall = new Evaluation(data);
 				evall.crossValidateModel(classifier, data, 3, rand);
-				
+
 				double rmse = evall.rootMeanSquaredError();
-				if(bestRMSE > rmse) {
+				if (bestRMSE > rmse) {
 					bestRMSE = rmse;
 					bestM = m;
 				}
@@ -660,7 +661,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		return m_root.classifyInstance(instance);
 	}
 
-	
 	/**
 	 * Returns tree in prefix order.
 	 * 
@@ -1360,7 +1360,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		// initialize concentration using alphas
 		if (methodHDP.equals(HDPMethod.Alpha)) {
 			this.convertAlphaToConcentratoins();
-			this.printTree();
+			this.printTree("HDP");
 			this.methodHDP = HDPMethod.Expected;
 		}
 
@@ -1379,7 +1379,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			// sample c
 			if ((iter + frequencySamplingC / 2) % frequencySamplingC == 0) {
 				// sample c once
-				for (Concentration c : concentrationsToSample) {
+				for (ConcentrationC45 c : concentrationsToSample) {
 					c.sample(rng);
 				}
 			}
@@ -1425,8 +1425,13 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		return m_root.getAllNodesAtRelativeDepth(depth);
 	}
 
-	private void printTree() {
-		System.out.println(m_root.printNksRecursively("root"));
+	private void printTree(String s) {
+		if (s.equalsIgnoreCase("HGS")) {
+			System.out.println(m_root.printNksRecursivelyHGS("root"));
+		} else if (s.equalsIgnoreCase("HDP")) {
+			System.out.println(m_root.printNksRecursivelyHDP("root"));
+		}
+
 	}
 
 	public void setNumFoldsPruning(int value) {
@@ -1535,40 +1540,81 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	}
 
 	void stepGradient() {
-		double currentCost = LOOCVCost();
+		double currentCost = LOOCVCost(); // alphas are all initialized as 1
+		System.out.println(0 + "\t" + currentCost + "\t");
 		double costDifference = currentCost;
 		int iter = 0;
 		double newCost = 0;
+		double minimumCost = Double.MAX_VALUE;
+		ArrayList<Double> bestAlphas = new ArrayList<Double>();
 		while (costDifference > this.precision) {
-			// currentCost = this.LOOCVCost();
+//		while (iter < 2000) {
 			ClassifierTree node;
+			double tempSum = 0;
+			boolean negative = false;
 			for (int i = 0; i < this.alphaList.size(); i++) {
 				node = alphaList.get(i);
 				node.alpha -= step * node.partialDerivative;
 				if (node.alpha < 0) {
-
-					for (int j = 0; j <= i; j++) {
-						node = alphaList.get(j);
-						node.alpha += step * node.partialDerivative;
-					}
-					// System.out.println(iter+"\t"+node.alpha);
-					// node.alpha += step * node.partialDerivative;
-					//// System.out.println(node.alpha);
-					// if (i > 0) {
-					// for (int j = 0; j < i; j++) {
-					//
-					// }
-					// }
-					break;
+					negative = true;
+				}
+				// if any alpha becomes negative, retore to the previous one, finish gradient
+//				if (node.alpha < 0) {
+//					for (int j = 0; j <= i; j++) {
+//						ClassifierTree temp = alphaList.get(j);
+//						temp.alpha += step * temp.partialDerivative;
+//					}
+//					for (int c = 0; c < this.alphaList.size(); i++) {
+//						System.out.println(alphaList.get(c).alpha);
+//					}
+//					break;
+//				}
+			}
+			if (negative) {
+				// add L2 norm to the cost, change the partial deriviative
+				for (int i = 0; i < this.alphaList.size(); i++) {
+					node = alphaList.get(i);
+					System.out.print(node.alpha+"\t");
+					 node.alpha += step * node.partialDerivative;
+//					if (node.alpha < 0) {
+//						tempSum += lambda * Math.pow(node.alpha, 2);
+//					}
+					 System.out.println(node.alpha);
 				}
 			}
-			newCost = this.LOOCVCost();
+
+			newCost = this.LOOCVCost() + tempSum;
 			costDifference = currentCost - newCost;
+
+//			for (int i = 0; i < this.alphaList.size(); i++) {
+////		alphaList.get(i).alpha = bestAlphas.get(i);
+//				System.out.println(alphaList.get(i).alpha);
+//			}
 			currentCost = newCost;
-			// System.out.println(currentCost);
+//			if (minimumCost > currentCost) {
+//				minimumCost = currentCost;
+//				bestAlphas = new ArrayList<Double>();
+//				for (int i = 0; i < this.alphaList.size(); i++) {
+//					bestAlphas.add(alphaList.get(i).alpha);
+//				}
+//			}
 			iter++;
+			System.out.println(iter + "\t" + newCost + "\t");
 		}
-		// System.out.println("\ngradient descend: " + iter + "\t" + newCost);
+
+//		System.out.println(minimumCost);
+//		System.out.println("gradient descent finished.");
+//		for (int i = 0; i < bestAlphas.size(); i++) {
+//			System.out.println(bestAlphas.get(i));
+//		}
+//		System.out.println();
+
+//		for (int i = 0; i < this.alphaList.size(); i++) {
+////			alphaList.get(i).alpha = bestAlphas.get(i);
+//			System.out.println(alphaList.get(i).alpha);
+//		}
+//		this.printTree("HGS");
+		System.out.println();
 	}
 
 	/**
@@ -1581,12 +1627,10 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			calculateLOOEstimatesTopDown();
 			calulatePartialDerivativeDownUp();
 		} else {
-			double[] sumpk = new double[nC];
-			calculatePkForLeaves(m_root, 0, sumpk, true);
+			calculatePkForLeaves(m_root, 0, new double[nC], true);
 		}
 
 		double loocvCost = 0;
-
 		for (int c = 0; c < this.leaves.size(); c++) {
 			ClassifierTree node = leaves.get(c);
 
@@ -1594,6 +1638,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 				loocvCost += node.nk[k] * Math.pow(1 - node.pk[k], 2);
 			}
 		}
+
 		return loocvCost;
 	}
 
@@ -1661,6 +1706,10 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 						node.partialDerivative += 2 * son.alc[k] * (son.pk[k] - node.pk[k]);
 					}
 				}
+
+				if (node.alpha < 0) {
+					node.partialDerivative += 2 * lambda * node.alpha;
+				}
 			}
 		}
 	}
@@ -1670,7 +1719,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	}
 
 	public void setTyingStrategy(String m_Tying) {
-		
+
 		if (m_Tying.equalsIgnoreCase("LEVEL"))
 			this.concentrationTyingStrategy = TyingStrategy.LEVEL;
 		else if (m_Tying.equalsIgnoreCase("SAME_PARENT"))
@@ -1682,7 +1731,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	}
 
 	public void setGibbsIteration(int gibbs) {
-		
+
 		this.nIterGibbs = gibbs;
 	}
 

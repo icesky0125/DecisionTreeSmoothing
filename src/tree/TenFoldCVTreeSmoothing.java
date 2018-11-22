@@ -39,7 +39,7 @@ public class TenFoldCVTreeSmoothing {
 
 		File[] folder = sourceFile.listFiles();
 		Arrays.sort(folder);
-		for (int d = 0; d < folder.length; d++) {
+		for (int d = 109; d < folder.length; d++) {
 
 			sourceFile = folder[d];
 			String name = sourceFile.getName().substring(0, sourceFile.getName().indexOf("."));
