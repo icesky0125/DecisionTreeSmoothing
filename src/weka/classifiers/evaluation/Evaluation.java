@@ -4482,18 +4482,21 @@ public class Evaluation implements Summarizable, RevisionHandler, Serializable {
   protected void updateMargins(double[] predictedDistribution, int actualClass,
     double weight) {
 
-    double probActual = predictedDistribution[actualClass];
-    double probNext = 0;
-
-    for (int i = 0; i < m_NumClasses; i++) {
-      if ((i != actualClass) && (predictedDistribution[i] > probNext)) {
-        probNext = predictedDistribution[i];
-      }
-    }
-
-    double margin = probActual - probNext;
-    int bin = (int) ((margin + 1.0) / 2.0 * k_MarginResolution);
-    m_MarginCounts[bin] += weight;
+//    double probActual = predictedDistribution[actualClass];
+//    double probNext = 0;
+//
+//    for (int i = 0; i < m_NumClasses; i++) {
+//      if ((i != actualClass) && (predictedDistribution[i] > probNext)) {
+//        probNext = predictedDistribution[i];
+//      }
+//    }
+//
+//    double margin = probActual - probNext;
+//    int bin = (int) ((margin + 1.0) / 2.0 * k_MarginResolution);
+//    if(bin == -1) {
+//    	System.out.println("stops here");
+//    }
+//    m_MarginCounts[bin] += weight;
   }
 
   /**

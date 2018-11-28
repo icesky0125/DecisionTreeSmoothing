@@ -37,11 +37,11 @@ public class TenFoldCVTreeSmoothing {
 			System.exit(-1);
 		}
 
-		File[] folder = sourceFile.listFiles();
-		Arrays.sort(folder);
-		for (int d = 109; d < folder.length; d++) {
+//		File[] folder = sourceFile.listFiles();
+//		Arrays.sort(folder);
+//		for (int d = 109; d < folder.length; d++) {
 
-			sourceFile = folder[d];
+//			sourceFile = folder[d];
 			String name = sourceFile.getName().substring(0, sourceFile.getName().indexOf("."));
 			System.out.print(name);
 			BufferedReader reader = new BufferedReader(new FileReader(sourceFile));
@@ -51,7 +51,7 @@ public class TenFoldCVTreeSmoothing {
 			int nD = data.numInstances();
 			int nA = data.numAttributes();
 			int nC = data.numClasses();
-
+			System.out.print("\t"+nD+"\t"+(nA-1)+"\t"+nC);
 			long seed = 25011990;
 
 			Random random = new Random(seed);
@@ -66,6 +66,8 @@ public class TenFoldCVTreeSmoothing {
 				tree.setGibbsIteration(m_GibbsIteration);
 				tree.setHDPMethod(methodHDP);
 			}
+//			tree.buildClassifier(data);
+//			System.out.println(tree.toString());
 			
 			EvaluationC45 eva = new EvaluationC45(data);
 			eva.crossValidateModel(tree, data, 10, random);
@@ -74,8 +76,8 @@ public class TenFoldCVTreeSmoothing {
 			System.out.print("\t"+Utils.doubleToString(eva.rootMeanSquaredError(), 6, 4));
 			System.out.print("\t"+Utils.doubleToString(eva.errorRate(), 6,4));	
 			System.out.print("\t"+eva.getTrainTime()+"\n");
-//			System.out.println();
-		}
+			System.out.println();
+//		}
 	}
 
 	public static void setOptions(String[] options) throws Exception {

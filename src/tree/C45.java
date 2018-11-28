@@ -213,7 +213,8 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	ArrayList<ClassifierTree> alphaList = new ArrayList<ClassifierTree>();
 	double precision = 0.00001;
 	double step = 0.01;
-	double lambda = 100000;
+	double lambda = 1000;
+	boolean L2Norm = true;
 
 	/** recursive LOOCV estimate **/
 	protected boolean recursiveLOOCV = false;
@@ -323,18 +324,18 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			}
 
 			LogStirlingGenerator lgcache = LogStirlingFactory.newLogStirlingGenerator(instances.numInstances(), 0.0);
-			
+
 //			LogStirlingCache lgcache = new LogStirlingCache(0.0,instances.numInstances());
 			m_root.setLogStirlingCache(lgcache);
 			smooth();
-//			this.printTree();
+			this.printTree("HDP");
 			break;
 		case HGS:
 			treeTraversal(m_root);
 			stepGradient();
 			double[] sumalpha = new double[this.nC];
 			calculatePkForLeaves(m_root, 0, sumalpha, false);
-//			this.printTree();
+//			this.printTree("HGS");
 			break;
 		case RECURSIVE:
 			this.recursiveLOOCV = true;
@@ -441,10 +442,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 
 	private void convertCountToProbs(String s) {
 		this.m_root.convertCountToProbs(s);
-	}
-
-	private boolean getComplexityPruning() {
-		return this.COMPLEXITYPRUNING;
 	}
 
 	protected void unprune() {
@@ -1540,80 +1537,77 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	}
 
 	void stepGradient() {
+		double B = 0;
 		double currentCost = LOOCVCost(); // alphas are all initialized as 1
-		System.out.println(0 + "\t" + currentCost + "\t");
+		System.out.println("\n"+0 + "\t" + currentCost + "\t"+B);
 		double costDifference = currentCost;
 		int iter = 0;
 		double newCost = 0;
-		double minimumCost = Double.MAX_VALUE;
-		ArrayList<Double> bestAlphas = new ArrayList<Double>();
+		ClassifierTree node;
+		
 		while (costDifference > this.precision) {
-//		while (iter < 2000) {
-			ClassifierTree node;
-			double tempSum = 0;
+
 			boolean negative = false;
 			for (int i = 0; i < this.alphaList.size(); i++) {
+
 				node = alphaList.get(i);
 				node.alpha -= step * node.partialDerivative;
+
 				if (node.alpha < 0) {
 					negative = true;
 				}
-				// if any alpha becomes negative, retore to the previous one, finish gradient
-//				if (node.alpha < 0) {
-//					for (int j = 0; j <= i; j++) {
-//						ClassifierTree temp = alphaList.get(j);
-//						temp.alpha += step * temp.partialDerivative;
-//					}
-//					for (int c = 0; c < this.alphaList.size(); i++) {
-//						System.out.println(alphaList.get(c).alpha);
-//					}
-//					break;
-//				}
 			}
+
+//			newCost = this.LOOCVCost();
 			if (negative) {
-				// add L2 norm to the cost, change the partial deriviative
-				for (int i = 0; i < this.alphaList.size(); i++) {
-					node = alphaList.get(i);
-					System.out.print(node.alpha+"\t");
-					 node.alpha += step * node.partialDerivative;
-//					if (node.alpha < 0) {
-//						tempSum += lambda * Math.pow(node.alpha, 2);
-//					}
-					 System.out.println(node.alpha);
+
+				if (!this.L2Norm) {
+					// if any alpha becomes negative, restore to the previous one, finish gradient
+					for (int i = 0; i < this.alphaList.size(); i++) {
+
+						node = alphaList.get(i);
+//						System.out.print(node.alpha + "\t");
+
+						node.alpha += step * node.partialDerivative;
+//						System.out.println(node.alpha);
+					}
+
+					newCost = currentCost;
+					break;
+					
+				} else {
+					
+					// or, add L2 norm to the cost, change the partial derivative
+					double L2NormTerm = 0;
+					for (int i = 0; i < this.alphaList.size(); i++) {
+						node = alphaList.get(i);
+//						System.out.print(node.alpha + "\t");
+						if (node.alpha < 0) {
+							L2NormTerm += lambda * Math.pow(node.alpha, 2);
+						}
+					}
+
+					newCost = this.LOOCVCost();
+					B =  L2NormTerm;
+					System.out.println(iter+1+"\t"+newCost+"\t"+B);
 				}
+			}else {
+				
+				newCost = this.LOOCVCost();
+				System.out.println(iter+1+"\t"+newCost+"\t"+B);
+				
 			}
-
-			newCost = this.LOOCVCost() + tempSum;
+	
 			costDifference = currentCost - newCost;
-
-//			for (int i = 0; i < this.alphaList.size(); i++) {
-////		alphaList.get(i).alpha = bestAlphas.get(i);
-//				System.out.println(alphaList.get(i).alpha);
-//			}
 			currentCost = newCost;
-//			if (minimumCost > currentCost) {
-//				minimumCost = currentCost;
-//				bestAlphas = new ArrayList<Double>();
-//				for (int i = 0; i < this.alphaList.size(); i++) {
-//					bestAlphas.add(alphaList.get(i).alpha);
-//				}
-//			}
 			iter++;
-			System.out.println(iter + "\t" + newCost + "\t");
+//			System.out.println(iter + "\t" + newCost + "\t");
 		}
 
-//		System.out.println(minimumCost);
-//		System.out.println("gradient descent finished.");
-//		for (int i = 0; i < bestAlphas.size(); i++) {
-//			System.out.println(bestAlphas.get(i));
-//		}
-//		System.out.println();
-
-//		for (int i = 0; i < this.alphaList.size(); i++) {
-////			alphaList.get(i).alpha = bestAlphas.get(i);
-//			System.out.println(alphaList.get(i).alpha);
-//		}
-//		this.printTree("HGS");
+		for (int i = 0; i < this.alphaList.size(); i++) {
+			System.out.println(alphaList.get(i).alpha);
+		}
+		
 		System.out.println();
 	}
 
@@ -1643,6 +1637,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	}
 
 	public void calculatePkForLeaves(ClassifierTree node, double sumalpha, double[] sumpk, boolean isGD) {
+
 		if (node.m_isLeaf) {
 
 			if (isGD) {
@@ -1685,21 +1680,24 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			}
 		}
 
-		// first recur on left subtree
+		// children
 		if (node.m_sons != null) {
 			for (int s = 0; s < node.m_sons.length; s++) {
 				calculatePkForLeaves(node.m_sons[s], sumalpha, sumpk, isGD);
 			}
+
 			sumalpha -= node.alpha;
 			for (int i = 0; i < this.nC; i++) {
 				sumpk[i] -= node.pk[i] * node.alpha;
 			}
 		}
 
-		// now deal with the node
 		if (isGD) {
+			// calculate partial derivative for each internal node
+
 			if (node.leavesUnderThisNode != null) {
 				node.partialDerivative = 0;
+				
 				for (int c = 0; c < node.leavesUnderThisNode.size(); c++) {
 					ClassifierTree son = node.leavesUnderThisNode.get(c);
 					for (int k = 0; k < this.nC; k++) {
@@ -1707,8 +1705,10 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 					}
 				}
 
-				if (node.alpha < 0) {
-					node.partialDerivative += 2 * lambda * node.alpha;
+				if(this.L2Norm) {
+					if (node.alpha < 0) {
+						node.partialDerivative += 2 * lambda * node.alpha;
+					}
 				}
 			}
 		}

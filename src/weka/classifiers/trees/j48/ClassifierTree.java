@@ -216,7 +216,7 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		this.marginal_tk = 0;
 		
 		this.m_parent = null;
-		this.alpha = 1;
+		this.alpha = 10;
 		
 		for (Instance ins : data) {
 			nk[(int) ins.classValue()]++;
@@ -372,8 +372,6 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 
 		double[] doubles = new double[instance.numClasses()];
 		
-		
-
 		for (int i = 0; i < doubles.length; i++) {
 			doubles[i] = getProbs(i, instance, 1);
 		}
@@ -1730,11 +1728,11 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		String res = "";
 		if (m_isLeaf) {
 			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
-					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) +"\n";
+					+ Arrays.toString(this.pkAveraged) + " alpha=" + Utils.doubleToString(alpha, 4) +"\n";
 
 		} else {
 			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
-					+ Arrays.toString(this.pk) + " alpha=" + Utils.doubleToString(alpha, 4) + "\n";
+					+ Arrays.toString(this.pkAveraged) + " alpha=" + Utils.doubleToString(alpha, 4) + "\n";
 		}
 
 		if (m_sons != null) {
@@ -1751,12 +1749,12 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		String res = "";
 		if (m_isLeaf) {
 			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
-					+ Arrays.toString(this.pk) + " c="
+					+ Arrays.toString(this.pkAveraged) + " c="
 					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
 
 		} else {
 			res += prefix + ":nk=" + Arrays.toString(this.nk) + ":tk=" + Arrays.toString(this.tk) + " pk="
-					+ Arrays.toString(this.pk)  + " c="
+					+ Arrays.toString(this.pkAveraged)  + " c="
 					+ Utils.doubleToString(this.getConcentration(), 4) + "\n";
 		}
 
