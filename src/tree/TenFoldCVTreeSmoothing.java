@@ -45,7 +45,7 @@ public class TenFoldCVTreeSmoothing {
 
 		File[] folder = sourceFile.listFiles();
 		Arrays.sort(folder);
-		for (int d =0; d < folder.length; d++) {
+		for (int d = 70; d < folder.length; d++) {
 
 			sourceFile = folder[d];
 			String name = sourceFile.getName().substring(0, sourceFile.getName().indexOf("."));
@@ -109,14 +109,14 @@ public class TenFoldCVTreeSmoothing {
 				method = SmoothingMethod.HDP;
 			}else if(string.equalsIgnoreCase("HGS")) {
 				method = SmoothingMethod.HGS;
-			}else if(string.equalsIgnoreCase("RECURSIVE")) {
-				method = SmoothingMethod.RECURSIVE;
 			}else if(string.equalsIgnoreCase("OptiMestimation")) {
 				method = SmoothingMethod.OptiMestimation;
 			}else if(string.equalsIgnoreCase("VALIDATE")) {
 				method = SmoothingMethod.VALIDATE;
 			}else if(string.equalsIgnoreCase("MBranch")){
 				method = SmoothingMethod.MBranch;
+			}else if(string.equalsIgnoreCase("HGS_LogLoss")) {
+				method = SmoothingMethod.HGS_LogLoss;
 			}else {
 				System.out.println("no this method found!");
 			}

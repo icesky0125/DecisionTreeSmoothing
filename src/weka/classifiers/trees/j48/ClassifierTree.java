@@ -1009,54 +1009,6 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		}
 	}
 
-	public void calculateLOOestimatesTopDown(double[] parentProbs, double parentAlpha) {
-
-		if (this.pk == null) {
-			this.pk = new double[nc];
-		}
-
-		for (int c = 0; c < nc; c++) {
-			if (nk[c] >= 1) {
-				pk[c] = (nk[c] - 1 + parentAlpha * parentProbs[c]) / (marginal_nk - 1 + parentAlpha);
-			}
-		}
-
-		this.denominator = (double) this.alpha / (this.marginal_nk - 1 + parentAlpha);
-		this.looDiff = new double[nc];
-		for (int c = 0; c < nc; c++) {
-			this.looDiff[c] = this.pk[c] - parentProbs[c];
-		}
-
-		if (this.m_sons != null) {
-			for (int s = 0; s < m_sons.length; s++) {
-				if (m_sons[s] != null) {
-					m_sons[s].calculateLOOestimatesTopDown(pk, this.alpha);
-				}
-			}
-		}
-	}
-
-	public void calculatePKforLeavesTopDown(double[] parentProbs, double parentAlpha) {
-
-		if (this.pkAveraged == null) {
-			this.pkAveraged = new double[nc];
-		}
-
-		for (int c = 0; c < nc; c++) {
-			pkAveraged[c] = (nk[c] + parentAlpha * parentProbs[c]) / (marginal_nk + parentAlpha);
-		}
-
-		Utils.normalize(this.pkAveraged);
-
-		if (this.m_sons != null) {
-			for (int s = 0; s < m_sons.length; s++) {
-				if (m_sons[s] != null) {
-					m_sons[s].calculatePKforLeavesTopDown(pkAveraged, this.alpha);
-				}
-			}
-		}
-	}
-
 	public double calculatePartialDerivativeDownUp(int c) {
 
 		if (this.m_sons != null) {
@@ -1086,13 +1038,6 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 			// leaf node
 			double pp = this.nk[c] * (1 - this.pk[c]);
 			return pp;
-		}
-	}
-
-	public void calculatePartialDerivativeDownUp() {
-
-		for (int c = 0; c < nc; c++) {
-			this.calculatePartialDerivativeDownUp(c);
 		}
 	}
 

@@ -222,7 +222,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	GradientMethod methodG;
 
 	/** recursive LOOCV estimate **/
-	protected boolean recursiveLOOCV = false;
 	double averagedTrainTime = 0;
 
 	private int N;
@@ -321,16 +320,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			break;
 		case HDP:
 
-//			if (methodHDP.equals(HDPMethod.Alpha)) {
-//				// initialize HDP using recursive LOOCV.
-//				this.recursiveLOOCV = true;
-//				treeTraversal(m_root);
-////				 this.recursiveLOOCVCost();
-//				this.stepGradient();
-////				 this.printTree();
-//				this.concentrationTyingStrategy = TyingStrategy.SAME_PARENT;
-//			}
-
 			LogStirlingGenerator lgcache = LogStirlingFactory.newLogStirlingGenerator(instances.numInstances(), 0.0);
 
 //			LogStirlingCache lgcache = new LogStirlingCache(0.0,instances.numInstances());
@@ -367,14 +356,11 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			calculatePkForLeaves(m_root, 0, sumalpha, false);
 //			this.printTree("HGS");
 			break;
-		case RECURSIVE:
-			this.recursiveLOOCV = true;
+		case HGS_LogLoss:
 			treeTraversal(m_root);
-			// this.recursiveLOOCVCost();
-//			this.stepGradient();
-//			 this.printTree();
-			this.calculatePkForLeavesRecusive();
-			// this.printTree();
+			stepGradientLogLoss();
+			sumalpha = new double[this.nC];
+			calculatePkForLeavesLogLoss(m_root, 0, sumalpha, false);
 			break;
 		case MBranch:
 			MBranchSmoothing();
@@ -525,29 +511,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 				this.setNodeDepth(son);
 			}
 		}
-	}
-
-	private void calulatePartialDerivativeDownUp() {
-		this.m_root.calculatePartialDerivativeDownUp();
-	}
-
-	private void calculateLOOEstimatesTopDown() {
-
-		double[] uniform = new double[nC];
-		for (int i = 0; i < nC; i++) {
-			uniform[i] = (double) 1 / nC;
-		}
-		// the base distribution for root is uniform distribution
-		this.m_root.calculateLOOestimatesTopDown(uniform, 1.0);
-	}
-
-	private void calculatePkForLeavesRecusive() {
-		double[] uniform = new double[nC];
-		for (int i = 0; i < nC; i++) {
-			uniform[i] = (double) 1 / nC;
-		}
-		// the base distribution for root is uniform distribution
-		this.m_root.calculatePKforLeavesTopDown(uniform, 1.0);
 	}
 
 	private void convertCountToProbs(String s) {
@@ -1606,10 +1569,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	}
 
 	/**
-	 * LOOCV
-	 */
-
-	/**
 	 * return all the internal nodes, all the leaves, and leaves under each internal
 	 * nodes
 	 */
@@ -1646,7 +1605,6 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		}
 	}
 
-//
 	void stepGradientBeta() {
 
 		double currentCost = LOOCVCost(); // alphas are all initialized as 1
@@ -1855,6 +1813,52 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 //		System.out.println();
 	}
 
+	void stepGradientLogLoss() {
+		double currentCost = LOOCVCostLogLoss(); // alphas are all initialized as 1
+//		System.out.println("\n"+0 + "\t" + currentCost);
+		double costDifference = currentCost;
+		int iter = 0;
+		double newCost = 0;
+		ClassifierTree node;
+
+		while (costDifference > this.precision) {
+
+			for (int i = 0; i < this.alphaList.size(); i++) {
+
+				node = alphaList.get(i);
+				node.alpha -= step * node.partialDerivative;
+			}
+			newCost = this.LOOCVCost();
+
+			costDifference = currentCost - newCost;
+			currentCost = newCost;
+			iter++;
+//			System.out.println(iter + "\t" + newCost + "\t");
+		}
+	}
+	
+	/**
+	 * Minimize the cost function
+	 */
+	private double LOOCVCostLogLoss() {
+
+		// get probability of all the nodes
+		calculatePkForLeavesLogLoss(m_root, 0, new double[nC], true);
+
+		double loocvCost = 0;
+		for (int c = 0; c < this.leaves.size(); c++) {
+			ClassifierTree node = leaves.get(c);
+
+			for (int k = 0; k < this.nC; k++) {
+				loocvCost -= node.nk[k] * Math.log(node.pk[k])/Math.log(2);
+			}
+		}
+
+		loocvCost /= N;
+
+		return loocvCost;
+	}
+	
 	/**
 	 * Minimize the cost function
 	 */
@@ -1864,12 +1868,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		}
 
 		// get probability of all the nodes
-		if (this.recursiveLOOCV) {
-			calculateLOOEstimatesTopDown();
-			calulatePartialDerivativeDownUp();
-		} else {
-			calculatePkForLeaves(m_root, 0, new double[nC], true);
-		}
+		calculatePkForLeaves(m_root, 0, new double[nC], true);
 
 		double loocvCost = 0;
 		for (int c = 0; c < this.leaves.size(); c++) {
@@ -1979,6 +1978,91 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		}
 	}
 
+	public void calculatePkForLeavesLogLoss(ClassifierTree node, double sumalpha, double[] sumpk, boolean isGD) {
+
+		if (node.m_isLeaf) {
+
+			if (isGD) {
+				node.alc = new double[this.nC];
+				for (int i = 0; i < this.nC; i++) {
+					if (node.nk[i] > 0) {
+						node.pk[i] = (node.nk[i] - 1 + sumpk[i]) / (Utils.sum(node.nk) - 1 + sumalpha);
+						if(method.equals("HGS_LogLoss")) {
+							node.alc[i] = node.nk[i] / (Utils.sum(node.nk) - 1 + sumalpha);
+						}else if(method.equals("HGS")) {
+							node.alc[i] = node.nk[i] * (1 - node.pk[i]) / (Utils.sum(node.nk) - 1 + sumalpha);
+						}
+					}
+				}
+			} else {
+				node.pkAveraged = new double[this.nC];
+				for (int i = 0; i < this.nC; i++) {
+					node.pkAveraged[i] = (node.nk[i] + sumpk[i]) / (Utils.sum(node.nk) + sumalpha);
+				}
+			}
+			return;
+		}
+
+		sumalpha += node.alpha;
+		if (isGD) {
+			for (int i = 0; i < this.nC; i++) {
+				sumpk[i] += node.pk[i] * node.alpha;
+			}
+			
+		} else {
+			int sum = Utils.sum(node.nk);
+			for (int i = 0; i < this.nC; i++) {
+				// node.pk[i] = SUtils.MEsti(node.nk[i], sum, this.nC);
+				node.pk[i] = (double) node.nk[i] / sum;
+				// node.pk[i] = (double) (node.nk[i]+1)/(sum+this.nC);
+			}
+
+			SUtils.normalize(node.pk);
+			//
+			for (int i = 0; i < this.nC; i++) {
+				sumpk[i] += node.pk[i] * node.alpha;
+			}
+		}
+
+		// children
+		if (node.m_sons != null) {
+			for (int s = 0; s < node.m_sons.length; s++) {
+				calculatePkForLeavesLogLoss(node.m_sons[s], sumalpha, sumpk, isGD);
+			}
+
+			sumalpha -= node.alpha;
+			for (int i = 0; i < this.nC; i++) {
+				sumpk[i] -= node.pk[i] * node.alpha;
+			}
+		}
+
+		if (isGD) {
+			// calculate partial derivative for each internal node
+
+			if (node.leavesUnderThisNode != null) {
+				node.partialDerivative = 0;
+
+				for (int c = 0; c < node.leavesUnderThisNode.size(); c++) {
+					ClassifierTree son = node.leavesUnderThisNode.get(c);
+					for (int k = 0; k < this.nC; k++) {
+						if(method.equals("HGS_LogLoss")) {
+							node.partialDerivative += son.alc[k] / son.pk[k] * (son.pk[k] - node.pk[k]);
+						}else if(method.equals("HGS")) {
+							node.partialDerivative += son.alc[k] * (son.pk[k] - node.pk[k]);
+						}
+					}
+				}
+				
+				if(method.equals("HGS_LogLoss")) {
+					node.partialDerivative /= (N*Math.log(2));
+				}else if(method.equals("HGS")) {
+					node.partialDerivative /= N;
+				}	
+			}
+		}
+	}
+
+	
 	public void setMethod(SmoothingMethod method2) {
 		this.method = method2;
 	}

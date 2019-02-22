@@ -6,8 +6,8 @@ public enum SmoothingMethod {
 	M_estimation,
 	HDP,
 	HGS,
-	RECURSIVE,
 	OptiMestimation, 
 	VALIDATE,
-	MBranch
+	MBranch, 
+	HGS_LogLoss
 }
