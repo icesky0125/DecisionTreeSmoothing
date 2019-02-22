@@ -115,6 +115,7 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 	public ArrayList<ClassifierTree> leavesUnderThisNode;
 	public double denominator = 0;
 	public double[] looDiff;
+	public double beta;
 
 	// *************************** For HDP
 	/**
@@ -170,6 +171,9 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 	LogStirlingGenerator lgCache;
 //	LogStirlingCache lgCache;
 
+	public int nodeDepth = 0;
+	public double nodeM = 0;
+
 	/**
 	 * Method for building a classifier tree.
 	 * 
@@ -216,7 +220,8 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		this.marginal_tk = 0;
 		
 		this.m_parent = null;
-		this.alpha = 10;
+		this.alpha = 1;
+		this.beta = 0;
 		
 		for (Instance ins : data) {
 			nk[(int) ins.classValue()]++;
@@ -241,7 +246,6 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 			if (Utils.eq(data.sumOfWeights(), 0)) {
 				m_isEmpty = true;
 			}
-
 			data = null;
 		}
 	}
@@ -1726,9 +1730,10 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 
 	public String printNksRecursivelyHGS(String prefix) {
 		String res = "";
+		
 		if (m_isLeaf) {
 			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
-					+ Arrays.toString(this.pkAveraged) + " alpha=" + Utils.doubleToString(alpha, 4) +"\n";
+					+ Arrays.toString(this.pkAveraged) +"\n";
 
 		} else {
 			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="

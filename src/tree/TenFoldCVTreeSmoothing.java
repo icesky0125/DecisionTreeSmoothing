@@ -2,10 +2,13 @@ package tree;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Random;
 
+import method.GradientMethod;
 import method.HDPMethod;
 import method.SmoothingMethod;
 import weka.core.Instances;
@@ -21,8 +24,11 @@ public class TenFoldCVTreeSmoothing {
 	private static int m_GibbsIteration;
 
 	private static HDPMethod methodHDP;
+	private static GradientMethod methodG;
 
 	public static void main(String[] args) throws Exception {
+//		System.setOut(new PrintStream(new FileOutputStream("output.txt")));
+//		System.out.println("This is test output");
 		System.out.println(Arrays.toString(args));
 		setOptions(args);
 
@@ -37,11 +43,11 @@ public class TenFoldCVTreeSmoothing {
 			System.exit(-1);
 		}
 
-//		File[] folder = sourceFile.listFiles();
-//		Arrays.sort(folder);
-//		for (int d = 109; d < folder.length; d++) {
+		File[] folder = sourceFile.listFiles();
+		Arrays.sort(folder);
+		for (int d =0; d < folder.length; d++) {
 
-//			sourceFile = folder[d];
+			sourceFile = folder[d];
 			String name = sourceFile.getName().substring(0, sourceFile.getName().indexOf("."));
 			System.out.print(name);
 			BufferedReader reader = new BufferedReader(new FileReader(sourceFile));
@@ -51,7 +57,7 @@ public class TenFoldCVTreeSmoothing {
 			int nD = data.numInstances();
 			int nA = data.numAttributes();
 			int nC = data.numClasses();
-			System.out.print("\t"+nD+"\t"+(nA-1)+"\t"+nC);
+			
 			long seed = 25011990;
 
 			Random random = new Random(seed);
@@ -66,8 +72,10 @@ public class TenFoldCVTreeSmoothing {
 				tree.setGibbsIteration(m_GibbsIteration);
 				tree.setHDPMethod(methodHDP);
 			}
-//			tree.buildClassifier(data);
-//			System.out.println(tree.toString());
+			
+			if(method == SmoothingMethod.HGS) {
+				tree.setGradientMethod(methodG);
+			}
 			
 			EvaluationC45 eva = new EvaluationC45(data);
 			eva.crossValidateModel(tree, data, 10, random);
@@ -76,8 +84,7 @@ public class TenFoldCVTreeSmoothing {
 			System.out.print("\t"+Utils.doubleToString(eva.rootMeanSquaredError(), 6, 4));
 			System.out.print("\t"+Utils.doubleToString(eva.errorRate(), 6,4));	
 			System.out.print("\t"+eva.getTrainTime()+"\n");
-			System.out.println();
-//		}
+		}
 	}
 
 	public static void setOptions(String[] options) throws Exception {
@@ -108,6 +115,8 @@ public class TenFoldCVTreeSmoothing {
 				method = SmoothingMethod.OptiMestimation;
 			}else if(string.equalsIgnoreCase("VALIDATE")) {
 				method = SmoothingMethod.VALIDATE;
+			}else if(string.equalsIgnoreCase("MBranch")){
+				method = SmoothingMethod.MBranch;
 			}else {
 				System.out.println("no this method found!");
 			}
@@ -122,6 +131,22 @@ public class TenFoldCVTreeSmoothing {
 				methodHDP = HDPMethod.Alpha;
 			}else {
 				System.out.println("no such method found!");
+			}
+		}
+		
+		string = Utils.getOption('S', options);
+		if (string.length() != 0) {
+			
+			if(string.equalsIgnoreCase("Beta")) {
+				methodG = GradientMethod.Beta;
+			}else if(string.equalsIgnoreCase("L2Norm")){
+				methodG = GradientMethod.L2Norm;
+			}else if(string.equalsIgnoreCase("EarlyStop")){
+				methodG = GradientMethod.EarlyStop;
+			}else if(string.equalsIgnoreCase("L2NormAll")) {
+				methodG = GradientMethod.L2NormAll;
+			}else if(string.equalsIgnoreCase("nonstop")) {
+				methodG = GradientMethod.NonStop;
 			}
 		}
 		

@@ -1,0 +1,3 @@
+This is test output
+[-t, /Users/hezhang/eclipse-workspace/dataContinuousNew, -P, -M, HDP, -S, nonstop, -H, expected, -G, 5000, -T, None]
+abalone*
