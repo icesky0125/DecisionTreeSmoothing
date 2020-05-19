@@ -101,8 +101,6 @@ public class TwoFoldCVWekaRandomForest {
 				method = SmoothingMethod.HDP;
 			}else if(string.equalsIgnoreCase("HGS")) {
 				method = SmoothingMethod.HGS;
-			}else if(string.equalsIgnoreCase("RECURSIVE")) {
-				method = SmoothingMethod.RECURSIVE;
 			}else if(string.equalsIgnoreCase("OptiMestimation")) {
 				method = SmoothingMethod.OptiMestimation;
 			}else if(string.equalsIgnoreCase("VALIDATE")) {

@@ -10,8 +10,8 @@ import java.util.BitSet;
 import java.util.Random;
 import org.apache.commons.math3.random.MersenneTwister;
 
-import method.Method;
-import pyp.ProbabilityTree;
+import method.SmoothingMethod;
+import hdp.ProbabilityTree;
 import weka.classifiers.evaluation.Evaluation;
 import weka.classifiers.mmall.Online.Bayes.wdBayesOnlinePYP;
 import weka.classifiers.mmall.Online.Bayes.wdBayesOnlinePYP_Penny;
@@ -41,7 +41,7 @@ public class TwoFoldXValOOCWdBayesPYPHDD {
 	private static boolean m_Backoff = true;
 	private static int m_Tying = 1;
 	private static boolean LOOCV = false;
-	protected static Method method = Method.LOOCV;
+	protected static SmoothingMethod method = SmoothingMethod.HGS;
 
 	public static void main(String[] args) throws Exception {
 
@@ -299,11 +299,11 @@ public class TwoFoldXValOOCWdBayesPYPHDD {
 		if (string.length() != 0) {
 			int num = Integer.parseInt(string);
 			if (num == 1){
-				method = Method.LOOCV;
+				method = SmoothingMethod.HGS;
 			}else if( num == 2){
-				method = Method.HDP;
+				method = SmoothingMethod.HDP;
 			}else{
-				method = Method.M_estimation;	
+				method = SmoothingMethod.M_estimation;	
 			}
 		}
 		

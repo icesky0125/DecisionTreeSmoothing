@@ -167,13 +167,13 @@ public final class wdBayesParametersTreePYP {
 		return (double) sum / roots[u].length; //average over all the trees
 	}
 
-	public void convertCountToProbs() {
-		for(int u = 0; u < roots.length; u++){
-			for(int t = 0; t < roots[u].length;t++){
-				roots[u][t].convertCountToProbs();
-			}
-		}	
-	}
+//	public void convertCountToProbs() {
+//		for(int u = 0; u < roots.length; u++){
+//			for(int t = 0; t < roots[u].length;t++){
+//				roots[u][t].convertCountToProbs();
+//			}
+//		}	
+//	}
 
 	public void setDiscount(double d) {
 		m_Discount = d;

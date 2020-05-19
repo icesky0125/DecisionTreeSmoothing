@@ -296,6 +296,9 @@ public Object clone() {
    * @exception Exception if something goes wrong
    */
   public abstract int whichSubset(Instance instance) throws Exception;
+  
+  
+  public abstract int getSplitAttIndex() throws Exception;
 }
 
 

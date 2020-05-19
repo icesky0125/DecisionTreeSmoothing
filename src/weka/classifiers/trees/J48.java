@@ -294,9 +294,6 @@ public class J48 extends AbstractClassifier implements OptionHandler, Drawable,
     }
     m_root.buildClassifier(instances);
     
-    if(this.m_useHDP){
-    	m_root.prepareForQuerying();
-    }
     if (m_binarySplits) {
       ((BinC45ModelSelection) modSelection).cleanup();
     } else {

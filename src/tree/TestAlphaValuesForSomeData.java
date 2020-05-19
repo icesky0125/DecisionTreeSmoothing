@@ -2,9 +2,7 @@ package tree;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -15,7 +13,7 @@ import weka.core.Instances;
 import weka.core.Utils;
 import weka.core.converters.ArffLoader.ArffReader;
 
-public class TenFoldCVTreeSmoothing {
+public class TestAlphaValuesForSomeData {
 
 	private static SmoothingMethod method;
 	private static String data;
@@ -43,48 +41,44 @@ public class TenFoldCVTreeSmoothing {
 			System.exit(-1);
 		}
 
-		File[] folder = sourceFile.listFiles();
-		Arrays.sort(folder);
-		for (int d = 0; d < folder.length; d++) {
+		String name = sourceFile.getName().substring(0, sourceFile.getName().indexOf("."));
+		System.out.print(name + "\t");
+		BufferedReader reader = new BufferedReader(new FileReader(sourceFile));
+		ArffReader arff = new ArffReader(reader);
+		Instances data = arff.getData();
+		data.setClassIndex(data.numAttributes() - 1);
+		int nD = data.numInstances();
+		int nA = data.numAttributes();
+		int nC = data.numClasses();
 
-			sourceFile = folder[d];
-			String name = sourceFile.getName().substring(0, sourceFile.getName().indexOf("."));
-			System.out.print(name+"\t");
-			BufferedReader reader = new BufferedReader(new FileReader(sourceFile));
-			ArffReader arff = new ArffReader(reader);
-			Instances data = arff.getData();
-			data.setClassIndex(data.numAttributes() - 1);
-			int nD = data.numInstances();
-			int nA = data.numAttributes();
-			int nC = data.numClasses();
-			
-			long seed = 25011990;
+		long seed = 25011990;
 
-			Random random = new Random(seed);
-			C45 tree = new C45();
+		Random random = new Random(seed);
+		C45 tree = new C45();
 //			 tree.setReducedErrorPruning(true);
-			// tree.setComplexityPruning(true);
-			tree.setUnpruned(m_unPruning);
-			tree.setMethod(method);
+		// tree.setComplexityPruning(true);
+		tree.setUnpruned(m_unPruning);
+		tree.setMethod(method);
 
-			if(method == SmoothingMethod.HDP){
-				tree.setTyingStrategy(m_Tying);
-				tree.setGibbsIteration(m_GibbsIteration);
-				tree.setHDPMethod(methodHDP);
-			}
-			
-			if(method.toString().contains("HGS")) {
-				tree.setGradientMethod(methodG);
-			}
-			
-			EvaluationC45 eva = new EvaluationC45(data);
-			eva.crossValidateModel(tree, data, 10, random);
-			
-//			System.out.print("\t"+nD+"\t"+(nA-1)+"\t"+nC);
-			System.out.print("\t"+Utils.doubleToString(eva.rootMeanSquaredError(), 6, 4));
-			System.out.print("\t"+Utils.doubleToString(eva.errorRate(), 6,4));	
-			System.out.print("\t"+eva.getTrainTime()+"\n");
+		if (method == SmoothingMethod.HDP) {
+			tree.setTyingStrategy(m_Tying);
+			tree.setGibbsIteration(m_GibbsIteration);
+			tree.setHDPMethod(methodHDP);
 		}
+
+		if (method.toString().contains("HGS")) {
+			tree.setGradientMethod(methodG);
+		}
+
+		tree.buildClassifier(data);
+
+//			EvaluationC45 eva = new EvaluationC45(data);
+//			eva.crossValidateModel(tree, data, 10, random);
+
+//			System.out.print("\t"+nD+"\t"+(nA-1)+"\t"+nC);
+//			System.out.print("\t"+Utils.doubleToString(eva.rootMeanSquaredError(), 6, 4));
+//			System.out.print("\t"+Utils.doubleToString(eva.errorRate(), 6,4));	
+//			System.out.print("\t"+eva.getTrainTime()+"\n");
 	}
 
 	public static void setOptions(String[] options) throws Exception {
@@ -95,73 +89,73 @@ public class TenFoldCVTreeSmoothing {
 		if (string.length() != 0) {
 			data = string;
 		}
-		
+
 		string = Utils.getOption('M', options);
 		if (string.length() != 0) {
-			
-			if(string.equalsIgnoreCase("None")) {
+
+			if (string.equalsIgnoreCase("None")) {
 				method = SmoothingMethod.None;
-			}else if(string.equalsIgnoreCase("LAPLACE")) {
+			} else if (string.equalsIgnoreCase("LAPLACE")) {
 				method = SmoothingMethod.LAPLACE;
-			}else if(string.equalsIgnoreCase("M_estimation")) {
+			} else if (string.equalsIgnoreCase("M_estimation")) {
 				method = SmoothingMethod.M_estimation;
-			}else if(string.equalsIgnoreCase("HDP")) {
+			} else if (string.equalsIgnoreCase("HDP")) {
 				method = SmoothingMethod.HDP;
-			}else if(string.equalsIgnoreCase("HGS")) {
+			} else if (string.equalsIgnoreCase("HGS")) {
 				method = SmoothingMethod.HGS;
-			}else if(string.equalsIgnoreCase("OptiMestimation")) {
+			} else if (string.equalsIgnoreCase("OptiMestimation")) {
 				method = SmoothingMethod.OptiMestimation;
-			}else if(string.equalsIgnoreCase("VALIDATE")) {
+			} else if (string.equalsIgnoreCase("VALIDATE")) {
 				method = SmoothingMethod.VALIDATE;
-			}else if(string.equalsIgnoreCase("MBranch")){
+			} else if (string.equalsIgnoreCase("MBranch")) {
 				method = SmoothingMethod.MBranch;
-			}else if(string.equalsIgnoreCase("HGS_LogLoss")) {
+			} else if (string.equalsIgnoreCase("HGS_LogLoss")) {
 				method = SmoothingMethod.HGS_LogLoss;
-			}else {
+			} else {
 				System.out.println("no this method found!");
 			}
 		}
-		
+
 		string = Utils.getOption('H', options);
 		if (string.length() != 0) {
-			
-			if(string.equalsIgnoreCase("Expected")) {
+
+			if (string.equalsIgnoreCase("Expected")) {
 				methodHDP = HDPMethod.Expected;
-			}else if(string.equalsIgnoreCase("alpha")){
+			} else if (string.equalsIgnoreCase("alpha")) {
 				methodHDP = HDPMethod.Alpha;
-			}else {
+			} else {
 				System.out.println("no such method found!");
 			}
 		}
-		
+
 		string = Utils.getOption('S', options);
 		if (string.length() != 0) {
-			
-			if(string.equalsIgnoreCase("Beta")) {
+
+			if (string.equalsIgnoreCase("Beta")) {
 				methodG = GradientMethod.Beta;
-			}else if(string.equalsIgnoreCase("L2Norm")){
+			} else if (string.equalsIgnoreCase("L2Norm")) {
 				methodG = GradientMethod.L2Norm;
-			}else if(string.equalsIgnoreCase("EarlyStop")){
+			} else if (string.equalsIgnoreCase("EarlyStop")) {
 				methodG = GradientMethod.EarlyStop;
-			}else if(string.equalsIgnoreCase("L2NormAll")) {
+			} else if (string.equalsIgnoreCase("L2NormAll")) {
 				methodG = GradientMethod.L2NormAll;
-			}else if(string.equalsIgnoreCase("nonstop")) {
+			} else if (string.equalsIgnoreCase("nonstop")) {
 				methodG = GradientMethod.NonStop;
 			}
 		}
-		
+
 		m_unPruning = Utils.getFlag('P', options);
 
 		string = Utils.getOption('T', options);
 		if (string.length() != 0) {
 			m_Tying = string;
 		}
-		
+
 		string = Utils.getOption('G', options);
 		if (string.length() != 0) {
 			m_GibbsIteration = Integer.parseInt(string);
 		}
-		
+
 		Utils.checkForRemainingOptions(options);
 	}
 

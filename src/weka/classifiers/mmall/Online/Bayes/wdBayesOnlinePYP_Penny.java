@@ -90,7 +90,7 @@ public final class wdBayesOnlinePYP_Penny {
 	ArrayList<int[][][]> parentOrder;
 	private ArrayList<int[]> upperOrder;
 	private boolean m_BackOff;
-	protected SmoothingMethod method = SmoothingMethod.LOOCV;
+	protected SmoothingMethod method = SmoothingMethod.HGS;
 	private static final int N_INSTANCES_OPTIM_SMOOTHING = 5000;
 	final double[] mValues = {0,0.05,0.2,1,5,20};
 	private boolean optimizeM = false;

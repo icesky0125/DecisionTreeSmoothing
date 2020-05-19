@@ -174,6 +174,7 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 	public int nodeDepth = 0;
 	public double nodeM = 0;
 
+	public String splitAttribute = "";
 	/**
 	 * Method for building a classifier tree.
 	 * 
@@ -229,6 +230,10 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		this.marginal_nk = data.numInstances();
 
 		m_localModel = m_toSelectModel.selectModel(data);
+		if(m_localModel.m_numSubsets != 1) {
+			this.splitAttribute = data.attribute(m_localModel.getSplitAttIndex()).toString();
+		}
+		
 
 		if (m_localModel.numSubsets() > 1) {
 			// alpha = 1;
@@ -1677,11 +1682,11 @@ public class ClassifierTree implements Drawable, Serializable, CapabilitiesHandl
 		String res = "";
 		
 		if (m_isLeaf) {
-			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
+			res += prefix + this.splitAttribute + ":nk=" + Arrays.toString(this.nk) + " pk="
 					+ Arrays.toString(this.pkAveraged) +"\n";
 
 		} else {
-			res += prefix + ":nk=" + Arrays.toString(this.nk) + " pk="
+			res += prefix + this.splitAttribute + ":nk=" + Arrays.toString(this.nk) + " pk="
 					+ Arrays.toString(this.pkAveraged) + " alpha=" + Utils.doubleToString(alpha, 4) + "\n";
 		}
 

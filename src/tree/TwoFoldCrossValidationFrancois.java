@@ -303,8 +303,6 @@ public class TwoFoldCrossValidationFrancois {
 				method = SmoothingMethod.HDP;
 			} else if (string.equalsIgnoreCase("hgs")) {
 				method = SmoothingMethod.HGS;
-			} else if (string.equalsIgnoreCase("recursive")) {
-				method = SmoothingMethod.RECURSIVE;
 			} else if (string.equalsIgnoreCase("optiMes")) {
 				method = SmoothingMethod.OptiMestimation;
 			}else if(string.equalsIgnoreCase("MBranch")){

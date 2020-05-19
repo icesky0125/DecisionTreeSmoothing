@@ -214,8 +214,10 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	protected boolean LOOCV = false;
 	ArrayList<ClassifierTree> leaves = new ArrayList<ClassifierTree>();
 	ArrayList<ClassifierTree> alphaList = new ArrayList<ClassifierTree>();
+	
 	double precision = 0.0001;
 	double step = 0.01;
+	
 	double lambda = 10;
 	boolean L2Norm = false;
 	boolean isBeta = false;
@@ -354,13 +356,15 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 
 			double[] sumalpha = new double[this.nC];
 			calculatePkForLeaves(m_root, 0, sumalpha, false);
-//			this.printTree("HGS");
+			this.printTree("HGS");
 			break;
 		case HGS_LogLoss:
 			treeTraversal(m_root);
 			stepGradientLogLoss();
+			
 			sumalpha = new double[this.nC];
-			calculatePkForLeavesLogLoss(m_root, 0, sumalpha, false);
+			calculatePkForLeavesLogLoss(m_root, 0, sumalpha, false); //calculate HGS smoothed estimate at leaves
+			this.printTree("HGS");
 			break;
 		case MBranch:
 			MBranchSmoothing();
@@ -1828,7 +1832,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 				node = alphaList.get(i);
 				node.alpha -= step * node.partialDerivative;
 			}
-			newCost = this.LOOCVCost();
+			newCost = this.LOOCVCostLogLoss();
 
 			costDifference = currentCost - newCost;
 			currentCost = newCost;
@@ -1843,14 +1847,16 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 	private double LOOCVCostLogLoss() {
 
 		// get probability of all the nodes
-		calculatePkForLeavesLogLoss(m_root, 0, new double[nC], true);
+		calculatePkForLeavesLogLoss(m_root, 0, new double[nC], true);  // true indicates gradient descent
 
 		double loocvCost = 0;
 		for (int c = 0; c < this.leaves.size(); c++) {
 			ClassifierTree node = leaves.get(c);
 
 			for (int k = 0; k < this.nC; k++) {
-				loocvCost -= node.nk[k] * Math.log(node.pk[k])/Math.log(2);
+				if(node.nk[k] > 0) {
+					loocvCost -= node.nk[k] * Math.log(node.pk[k])/Math.log(2);
+				}
 			}
 		}
 
@@ -1948,6 +1954,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 			}
 		}
 
+		// now deal with the node
 		if (isGD) {
 			// calculate partial derivative for each internal node
 
@@ -1980,16 +1987,18 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 
 	public void calculatePkForLeavesLogLoss(ClassifierTree node, double sumalpha, double[] sumpk, boolean isGD) {
 
+//		isGD indicates the calculation is for gradient descent 
+		
 		if (node.m_isLeaf) {
 
 			if (isGD) {
 				node.alc = new double[this.nC];
 				for (int i = 0; i < this.nC; i++) {
 					if (node.nk[i] > 0) {
-						node.pk[i] = (node.nk[i] - 1 + sumpk[i]) / (Utils.sum(node.nk) - 1 + sumalpha);
-						if(method.equals("HGS_LogLoss")) {
+						node.pk[i] = (node.nk[i] - 1 + sumpk[i]) / (Utils.sum(node.nk) - 1 + sumalpha); // LOO estimate
+						if(method == SmoothingMethod.HGS_LogLoss) {
 							node.alc[i] = node.nk[i] / (Utils.sum(node.nk) - 1 + sumalpha);
-						}else if(method.equals("HGS")) {
+						}else if(method == SmoothingMethod.HGS) {
 							node.alc[i] = node.nk[i] * (1 - node.pk[i]) / (Utils.sum(node.nk) - 1 + sumalpha);
 						}
 					}
@@ -2012,9 +2021,9 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		} else {
 			int sum = Utils.sum(node.nk);
 			for (int i = 0; i < this.nC; i++) {
-				// node.pk[i] = SUtils.MEsti(node.nk[i], sum, this.nC);
-				node.pk[i] = (double) node.nk[i] / sum;
-				// node.pk[i] = (double) (node.nk[i]+1)/(sum+this.nC);
+				// node.pk[i] = SUtils.MEsti(node.nk[i], sum, this.nC); // M-estimation for parent node
+				node.pk[i] = (double) node.nk[i] / sum; // MLE for parent note
+				// node.pk[i] = (double) (node.nk[i]+1)/(sum+this.nC);  //Laplace for parent node
 			}
 
 			SUtils.normalize(node.pk);
@@ -2037,7 +2046,7 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 		}
 
 		if (isGD) {
-			// calculate partial derivative for each internal node
+			// calculate partial derivative for each internal node in gradient descent
 
 			if (node.leavesUnderThisNode != null) {
 				node.partialDerivative = 0;
@@ -2045,17 +2054,19 @@ public class C45 extends AbstractClassifier implements OptionHandler, Matchable,
 				for (int c = 0; c < node.leavesUnderThisNode.size(); c++) {
 					ClassifierTree son = node.leavesUnderThisNode.get(c);
 					for (int k = 0; k < this.nC; k++) {
-						if(method.equals("HGS_LogLoss")) {
-							node.partialDerivative += son.alc[k] / son.pk[k] * (son.pk[k] - node.pk[k]);
-						}else if(method.equals("HGS")) {
-							node.partialDerivative += son.alc[k] * (son.pk[k] - node.pk[k]);
+						if(son.nk[k] > 0) {
+							if(method == SmoothingMethod.HGS_LogLoss) {
+								node.partialDerivative += son.alc[k] / son.pk[k] * (son.pk[k] - node.pk[k]);
+							}else if(method == SmoothingMethod.HGS) {
+								node.partialDerivative += son.alc[k] * (son.pk[k] - node.pk[k]);
+							}
 						}
 					}
 				}
 				
-				if(method.equals("HGS_LogLoss")) {
+				if(method == SmoothingMethod.HGS_LogLoss) {
 					node.partialDerivative /= (N*Math.log(2));
-				}else if(method.equals("HGS")) {
+				}else if(method == SmoothingMethod.HGS) {
 					node.partialDerivative /= N;
 				}	
 			}
